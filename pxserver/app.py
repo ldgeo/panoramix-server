@@ -11,7 +11,7 @@ class Resource(OrigResource):
 
 api = Api(
     version='0.1', title='Panoramix Server',
-    description='API for accessing panoramics images',
+    description='API for accessing metadatas panoramics images',
     validate=True
 )
 
@@ -26,7 +26,7 @@ infos_ns = api.namespace('infos/',
 class InfosGlobal(Resource):
 
     def get(self):
-        return "Server for panoramics images / Oslandia"
+        return "Server for metadatas of panoramics images / Oslandia"
 
 
 @infos_ns.route("/contact")

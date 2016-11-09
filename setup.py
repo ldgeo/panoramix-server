@@ -52,7 +52,7 @@ def find_version(*file_paths):
 setup(
     name='panoramix-server',
     version=find_version('pxserver', '__init__.py'),
-    description='Server for panoramics images',
+    description='Server for metadatas of panoramics images',
     url='https://github.com/pblottiere/panoramix-server',
     author='dev',
     author_email='contact@oslandia.com',

@@ -7,6 +7,7 @@
 To use panoramix-server from sources:
 
 ```
+$ sudo apt-get install libvips-tools
 $ git clone https://github.com/pblottiere/panoramix-server
 $ cd panoramix-server
 $ virtualenv -p /usr/bin/python3 venv
@@ -14,10 +15,19 @@ $ . venv/bin/activate
 (venv)$ pip install -e .
 ```
 
-## How to prepare images
+## How to prepare images and database
+
+### IIPImage
+
+The image server currently tested is IIPImage. To work with this server, we
+need tiled multi-resolution TIF images.
+
+If you have jpeg images, the *vips* command line tool is made for you. The
+python script named *pxvips.sh* is justa a wrapper shell script using *vips*
+and allowing to convert a full directory of images:
 
 ```
-TODO
+$ ./tools/pxvips.sh --input <input_dir> --output <output_dir>
 ```
 
 ## How to run
