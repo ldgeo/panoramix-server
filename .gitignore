@@ -1,0 +1,4 @@
+pxserver.yml
+pxserver.uwsgi.yml
+venv
+panoramix_server.egg-info

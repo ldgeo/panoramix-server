@@ -1,0 +1,12 @@
+uwsgi:
+    virtualenv: /home/user/.virtualenvs/pxserver
+    master: true
+    socket: localhost:5000
+    module: pxserver.wsgi:app
+    processes: 2
+    enable-threads: true
+    protocol: http
+    need-app: true
+    lazy-apps: true
+    catch: exceptions=true
+    env: PXSERVER_SETTINGS=/home/user/panoramix-server/conf/pxserver.yml
