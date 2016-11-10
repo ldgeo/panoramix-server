@@ -40,9 +40,19 @@ do
   FILENAME=$(basename $f)
   FILENAME_BASE=$(echo $FILENAME | cut -f 1 -d '.')
   FILENAME_DIR=$(dirname $f)
-  OUTPUT_SUBDIR=${FILENAME_DIR#$(dirname "$(dirname "$f")")/}
+  OUTPUT_SUBDIR=${FILENAME_DIR#$INPUT_DIR}
+  TIFF=$OUTPUT_DIR/$OUTPUT_SUBDIR/$FILENAME_BASE.tif
 
+  # create output subdirectory
   mkdir -p $OUTPUT_DIR/$OUTPUT_SUBDIR
-  vips im_vips2tiff $f \
-    $OUTPUT_DIR/$OUTPUT_SUBDIR/$FILENAME_BASE.tif:deflate,tile:256x256,pyramid
+
+  # convert images in tiled mutli-resolution tiff images
+  eval "convert $f -define tiff:tile-geometry=256x256 -compress jpeg 'ptif:$TIFF'"
+  # vips im_vips2tiff $f $TIFF:deflate,tile:256x256,pyramid
+
+  # convert/vips doesn't keep GPSInfo metadata. So we keep it manually
+  exiftool -TagsFromFile $f "-all:all>all:all" $TIFF
+
+  # remove exiftool copy
+  rm -f $TIFF_original
 done

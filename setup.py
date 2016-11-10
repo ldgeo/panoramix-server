@@ -10,6 +10,7 @@ requirements = (
     'flask-restplus==0.9.2',
     'psycopg2==2.6.1',
     'pyyaml',
+    'pyexifinfo'
 )
 
 dev_requirements = (

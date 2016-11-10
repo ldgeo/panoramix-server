@@ -1,0 +1,134 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+import argparse
+import glob
+import yaml
+import pyexifinfo
+
+from pxserver.database import Database
+
+PXTABLE = 'metadatas'
+
+
+def init_database():
+    '''
+    Create the metadatas table.
+    '''
+    sql = ('create table {0}('
+           'id bigserial primary key'
+           ', filename varchar'
+           ', exif jsonb'
+           ', etime timestamptz'
+           ', type varchar'
+           ', position geometry(point, 4326))'.
+           format(PXTABLE))
+    Database.db.cursor().execute(sql)
+
+
+def fill(type, metadatas):
+    '''
+    Fill the database with metadatas.
+    '''
+    for k, v in metadatas.items():
+        lat, lng = get_position(v)
+        datetime = get_datetime(v)
+
+        v['Composite:GPSLongitude'] = to_degrees(v['Composite:GPSLongitude'])
+        v['EXIF:GPSLatitude'] = to_degrees(v['EXIF:GPSLatitude'])
+        v['Composite:GPSPosition'] = to_degrees(v['Composite:GPSPosition'])
+        v['Composite:GPSLatitude'] = to_degrees(v['Composite:GPSLatitude'])
+        v['EXIF:GPSLongitude'] = to_degrees(v['EXIF:GPSLongitude'])
+
+        v = str(v).replace('\'', '"')
+
+        sql = ("INSERT INTO {0} VALUES(default, '{1}', '{2}', '{3}', '{4}'"
+               ", ST_GeomFromText('POINT({5} {6})', 4326))"
+               .format(PXTABLE, k, v, datetime, type, lng, lat))
+        Database.db.cursor().execute(sql)
+
+
+def to_degrees(dms_str):
+    '''
+    Convert a DMS string in decimal degrees.
+    '''
+    dms_str = dms_str.split(' ')
+    d = float(dms_str[0])
+    m = float(dms_str[2].replace('\'', ''))
+    s = float(dms_str[3].replace('\"', ''))
+    return float('{0:.4f}'.format(d + (m / 60.0) + (s / 3600.0)))
+
+
+def get_position(metadata):
+    '''
+    Returns latitude and longitude from EXIF tags.
+    '''
+    lat = to_degrees(metadata['EXIF:GPSLatitude'])
+    lng = to_degrees(metadata['EXIF:GPSLongitude'])
+    return lat, lng
+
+
+def get_datetime(metadata):
+    '''
+    Returns a datetime from EXIF tags.
+    '''
+    date = metadata['EXIF:GPSDateStamp'].replace(':', '-')
+    time = metadata['EXIF:GPSTimeStamp']
+    return '{0} {1}'.format(date, time)
+
+
+def get_metadatas(imagesdir):
+    '''
+    Returns a list of metadata in json from tiff images.
+    '''
+    image_list = {}
+    for filename in glob.glob('{}/*.tif'.format(imagesdir)):
+        image_list[filename] = pyexifinfo.get_json(filename)[0]
+    return image_list
+
+
+if __name__ == '__main__':
+    # arg parse
+    descr = 'Fill database with panoramics images metadatas'
+    parser = argparse.ArgumentParser(description=descr)
+
+    cfg_help = 'configuration file'
+    parser.add_argument('cfg', metavar='cfg', type=str, help=cfg_help)
+
+    type_help = 'image type (equi or cube)'
+    parser.add_argument('type', metavar='type', type=str, help=type_help)
+
+    dirh = 'directory with panoramics images'
+    parser.add_argument('imagesdir', metavar='imagesdir', type=str, help=dirh)
+
+    args = parser.parse_args()
+
+    # check if type is valid
+    valid_types = ['cube', 'equi']
+    if args.type not in valid_types:
+        print('ERROR: invalid type. Should be in [{}]'
+              .format(', '.join(valid_types)))
+        sys.exit()
+
+    # open config file
+    ymlconf_db = None
+    with open(args.cfg, 'r') as f:
+        try:
+            ymlconf_db = yaml.load(f)['flask']
+        except:
+            print("ERROR: ", sys.exc_info()[0])
+            f.close()
+            sys.exit()
+
+    # database connection
+    app = type('', (), {})()
+    app.config = ymlconf_db
+    Database.init_app(app)
+
+    # init the database (extension, table, ...)
+    init_database()
+
+    # fill database
+    metadatas = get_metadatas(args.imagesdir)
+    fill(args.type, metadatas)

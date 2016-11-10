@@ -106,7 +106,7 @@ class Database():
         Initialize db session lazily
         '''
         cls.db = connect(
-            "postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_name}"
+            "postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_NAME}"
             .format(**app.config),
             cursor_factory=NamedTupleCursor,
         )

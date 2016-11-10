@@ -1,0 +1,13 @@
+language: python
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -q postgresql-server-dev-9.3
+  - sudo apt-get install -q graphicsmagick-imagemagick-compat
+  - sudo apt-get install -q libimage-exiftool-perl
+
+addons:
+  postgresql: "9.3"
+
+script:
+  - ./tests/tools/test_all.sh
