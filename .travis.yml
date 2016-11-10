@@ -7,13 +7,10 @@ python:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -q postgresql-server-dev-9.3
+  - sudo apt-get install postgresql
   - sudo apt-get install postgis
-  - sudo apt-get install -q graphicsmagick-imagemagick-compat
-  - sudo apt-get install -q libimage-exiftool-perl
-
-addons:
-  postgresql: "9.3"
+  - sudo apt-get install graphicsmagick-imagemagick-compat
+  - sudo apt-get install libimage-exiftool-perl
 
 install:
   - pip install -e .
