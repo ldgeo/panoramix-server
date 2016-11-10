@@ -12,7 +12,7 @@ wget -P $INPUT_DIR \
 
 
 # convert
-$ROOT/tools/pxvips --input $INPUT_DIR --output $OUTPUT_DIR
+$ROOT/tools/pxconvert --input $INPUT_DIR --output $OUTPUT_DIR
 
 
 # prepare the database
