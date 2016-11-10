@@ -53,7 +53,6 @@ flask:
     PG_USER: myusername
     PG_PASSWORD: mypassword
     PG_TABLE: metadatas
-    PG_COLUMN: image
 ```
 
 Then, you can run the *px2pg* script by indicating the yaml file with postgtres

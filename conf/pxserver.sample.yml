@@ -7,4 +7,3 @@ flask:
     PG_USER: user
     PG_PASSWORD:
     PG_TABLE: mytable
-    PG_COLUMN: images
