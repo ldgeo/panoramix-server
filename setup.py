@@ -5,8 +5,6 @@ from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-dep_links=['https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz#egg=basemap-1.0.7']
-
 requirements = (
     'flask==0.10.1',
     'flask-restplus==0.9.2',
@@ -14,7 +12,6 @@ requirements = (
     'pyyaml',
     'pyexifinfo',
     'matplotlib',
-    'basemap==1.0.7'
 )
 
 dev_requirements = (
@@ -71,7 +68,6 @@ setup(
     packages=find_packages(),
     test_suite='tests',
     install_requires=requirements,
-    dependency_links=dep_links,
     extras_require={
         'dev': dev_requirements,
         'prod': prod_requirements,
