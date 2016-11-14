@@ -36,6 +36,55 @@ class Database():
     db = None
 
     @classmethod
+    def count(cls):
+        query = 'select count(distinct view) from {0}'.format(cls.table)
+        return cls.query_aslist(query)[0]
+
+    @classmethod
+    def count_cube(cls):
+        query = ('select count(distinct view) from {0} where type=\'cube\''
+                 .format(cls.table))
+        return cls.query_aslist(query)[0]
+
+    @classmethod
+    def count_equirectangular(cls):
+        query = ('select count(distinct view) from {0} where type=\'equi\''
+                 .format(cls.table))
+        return cls.query_aslist(query)[0]
+
+    @classmethod
+    def extent(cls):
+        query = 'select st_extent(position) from {0}'.format(cls.table)
+        return cls.query_aslist(query)[0]
+
+    @classmethod
+    def views_in_frustum(cls, lat, lng, radius, type):
+        query = ('select distinct on (view) view from {0} '
+                 'WHERE ST_Distance(position, ST_SetSRID(ST_MakePoint({1}, '
+                 '{2}), 4326), true) '
+                 '<= {3}'.format(cls.table, lng, lat, radius))
+        if type:
+            query += ' and type = \'{0}\''.format(type)
+        return cls.query_aslist(query)
+
+    @classmethod
+    def positions(cls):
+        query = ('select distinct on (view) view, st_astext(position), type'
+                 ' from {0}'.format(cls.table))
+        return cls.query_asdict(query)
+
+    @classmethod
+    def position(cls, viewid):
+        query = ('select st_astext(position) from {0} where view = {1} limit 1'
+                 .format(cls.table, viewid))
+        return cls.query_aslist(query)
+
+    @classmethod
+    def from_view(cls, uid):
+        query = ('select * from {0} where view = {1}'.format(cls.table, uid))
+        return cls.query_asdict(query)
+
+    @classmethod
     def _query(cls, query, parameters=None, rowcount=None):
         '''
         Performs a query and returns results as a named tuple
@@ -110,5 +159,9 @@ class Database():
             .format(**app.config),
             cursor_factory=NamedTupleCursor,
         )
+
         # autocommit mode for performance (we don't need transaction)
         cls.db.autocommit = True
+
+        # keep some infos
+        cls.table = app.config['PG_TABLE']

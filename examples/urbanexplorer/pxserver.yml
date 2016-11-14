@@ -4,6 +4,6 @@ flask:
     PG_HOST: localhost
     PG_NAME: panoramix
     PG_PORT: 5432
-    PG_USER: travis
+    PG_USER: blottiere
     PG_PASSWORD:
     PG_TABLE: metadatas

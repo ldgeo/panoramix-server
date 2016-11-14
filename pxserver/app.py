@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-from flask_restplus import Api, Resource as OrigResource
+from flask_restplus import Api, Resource as OrigResource, reqparse
 
 from pxserver.database import pgexceptions
+from pxserver import px
 
 
 class Resource(OrigResource):
@@ -41,3 +42,63 @@ class InfosOnline(Resource):
 
     def get(self):
         return "Congratulation, panoramix-server is online!!!"
+
+# -----------------------------------------------------------------------------
+# panoramix api
+# -----------------------------------------------------------------------------
+pxserver_ns = api.namespace('panoramix/',
+                            description='Entry to retrieve metadatas')
+
+
+# infos
+@pxserver_ns.route('/infos')
+class PXServerInfos(Resource):
+
+    def get(self):
+        return px.PXInfos().run()
+
+
+# frustum
+frustum_parser = reqparse.RequestParser()
+frustum_parser.add_argument('latitude', type=float, required=True)
+frustum_parser.add_argument('longitude', type=float, required=True)
+frustum_parser.add_argument('radius', type=float, required=True)
+frustum_parser.add_argument('type', type=str, required=False,
+                            choices=['all', 'cube', 'equi'], default='all')
+
+
+@pxserver_ns.route('/frustum')
+class PXServerFrustum(Resource):
+
+    @api.expect(frustum_parser, validate=True)
+    def get(self):
+        args = frustum_parser.parse_args()
+        return px.PXFrustum().run(args)
+
+
+# metadata
+metadata_parser = reqparse.RequestParser()
+metadata_parser.add_argument('view', type=int, required=True)
+
+
+@pxserver_ns.route('/metadata')
+class PXServerMetadata(Resource):
+
+    @pxserver_ns.response(404, 'View not found')
+    @api.expect(metadata_parser, validate=True)
+    def get(self):
+        args = metadata_parser.parse_args()
+
+        res = px.PXMetadata().run(args)
+        if not res:
+            pxserver_ns.abort(404, 'View not found')
+
+        return res
+
+
+# map
+@pxserver_ns.route('/map')
+class PXServerMap(Resource):
+
+    def get(self):
+        return px.PXMap().run()

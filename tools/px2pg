@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from flask import Flask
 import argparse
 import glob
 import yaml
@@ -9,30 +10,29 @@ import pyexifinfo
 
 from pxserver.database import Database
 
-PXTABLE = 'metadatas'
 
-
-def init_database():
+def init_database(table):
     '''
     Create the metadatas table.
     '''
-    sql = ('create table {0}('
+    sql = ('create table if not exists {0}('
            'id bigserial primary key'
+           ', view bigserial'
            ', filename varchar'
            ', exif jsonb'
            ', etime timestamptz'
            ', type varchar'
            ', position geometry(point, 4326))'.
-           format(PXTABLE))
+           format(table))
     Database.db.cursor().execute(sql)
 
 
-def fill(type, metadatas):
+def fill(table, type, metadatas):
     '''
     Fill the database with metadatas.
     '''
     for k, v in metadatas.items():
-        lat, lng = get_position(v)
+        lat, lng, alt = get_position(v)
         datetime = get_datetime(v)
 
         v['Composite:GPSLongitude'] = to_degrees(v['Composite:GPSLongitude'])
@@ -43,10 +43,31 @@ def fill(type, metadatas):
 
         v = str(v).replace('\'', '"')
 
-        sql = ("INSERT INTO {0} VALUES(default, '{1}', '{2}', '{3}', '{4}'"
-               ", ST_GeomFromText('POINT({5} {6})', 4326))"
-               .format(PXTABLE, k, v, datetime, type, lng, lat))
-        Database.db.cursor().execute(sql)
+        if type == 'equi':
+            sql = ("INSERT INTO {0} VALUES(default, default, '{1}', '{2}', "
+                   "'{3}', '{4}'"
+                   ", ST_GeomFromText('POINT({5} {6})', 4326))"
+                   .format(table, k, v, datetime, type, lng, lat, alt))
+            Database.db.cursor().execute(sql)
+        else:
+            sql = ('SELECT view FROM {0} WHERE type = \'cube\' and '
+                   'st_equals(position, st_geomfromtext(\'POINT({1} {2})\', '
+                   '4326))'.format(table, lng, lat))
+            viewid = Database.query_aslist(sql)
+
+            if viewid:
+                sql = ("INSERT INTO {0} VALUES(default, {7}, '{1}', '{2}',"
+                       " '{3}', '{4}'"
+                       ", ST_GeomFromText('POINT({5} {6})', 4326))"
+                       .format(table, k, v, datetime, type, lng, lat,
+                               viewid[0]))
+                Database.db.cursor().execute(sql)
+            else:
+                sql = ("INSERT INTO {0} VALUES(default, default, '{1}', '{2}',"
+                       " '{3}', '{4}'"
+                       ", ST_GeomFromText('POINT({5} {6})', 4326))"
+                       .format(table, k, v, datetime, type, lng, lat, alt))
+                Database.db.cursor().execute(sql)
 
 
 def to_degrees(dms_str):
@@ -57,16 +78,17 @@ def to_degrees(dms_str):
     d = float(dms_str[0])
     m = float(dms_str[2].replace('\'', ''))
     s = float(dms_str[3].replace('\"', ''))
-    return float('{0:.4f}'.format(d + (m / 60.0) + (s / 3600.0)))
+    return float('{0:.8f}'.format(d + (m / 60.0) + (s / 3600.0)))
 
 
 def get_position(metadata):
     '''
-    Returns latitude and longitude from EXIF tags.
+    Returns latitude, longitude and altitude from EXIF tags.
     '''
     lat = to_degrees(metadata['EXIF:GPSLatitude'])
     lng = to_degrees(metadata['EXIF:GPSLongitude'])
-    return lat, lng
+    alt = metadata['EXIF:GPSAltitude'].replace(' ', '').replace('m', '')
+    return lat, lng, alt
 
 
 def get_datetime(metadata):
@@ -78,13 +100,31 @@ def get_datetime(metadata):
     return '{0} {1}'.format(date, time)
 
 
-def get_metadatas(imagesdir):
+def get_metadatas(imagesdir, regex):
     '''
     Returns a list of metadata in json from tiff images.
     '''
+
     image_list = {}
-    for filename in glob.glob('{}/*.tif'.format(imagesdir)):
+
+    # recursive find
+    if regex:
+        pattern = '{0}/**/{1}.tif'.format(imagesdir, regex)
+    else:
+        pattern = '{0}/**/*.tif'.format(imagesdir)
+
+    for filename in glob.glob(pattern):
         image_list[filename] = pyexifinfo.get_json(filename)[0]
+
+    # first level find
+    if regex:
+        pattern = '{0}/{1}.tif'.format(imagesdir, regex)
+    else:
+        pattern = '{0}/*.tif'.format(imagesdir)
+
+    for filename in glob.glob(pattern):
+        image_list[filename] = pyexifinfo.get_json(filename)[0]
+
     return image_list
 
 
@@ -101,6 +141,9 @@ if __name__ == '__main__':
 
     dirh = 'directory with panoramics images'
     parser.add_argument('imagesdir', metavar='imagesdir', type=str, help=dirh)
+
+    regh = 'regex for image filename <imagesdir>/**/<regex>.tif'
+    parser.add_argument('--reg', metavar='reg', type=str, help=regh)
 
     args = parser.parse_args()
 
@@ -122,13 +165,17 @@ if __name__ == '__main__':
             sys.exit()
 
     # database connection
-    app = type('', (), {})()
-    app.config = ymlconf_db
-    Database.init_app(app)
+    app = Flask(__name__)
+    with app.app_context():
+        app.config = ymlconf_db
+        app.config['LOGGER_NAME'] = 'scan'
+        Database.init_app(app)
 
-    # init the database (extension, table, ...)
-    init_database()
+        # init the database with table if not exist
+        init_database(app.config['PG_TABLE'])
 
-    # fill database
-    metadatas = get_metadatas(args.imagesdir)
-    fill(args.type, metadatas)
+        # retrieve metadatas for each images
+        metadatas = get_metadatas(args.imagesdir, args.reg)
+
+        # fill database
+        fill(app.config['PG_TABLE'], args.type, metadatas)

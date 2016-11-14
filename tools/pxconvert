@@ -25,7 +25,7 @@ done
 if [ -z "$INPUT_DIR" ] || [ -z "$OUTPUT_DIR" ]
 then
     echo "Invalid usage: "
-    echo "  pxvips.sh --input <input_dir> --output <output_dir>"
+    echo "  pxconvert --input <input_dir> --output <output_dir>"
     exit
 fi
 

@@ -66,6 +66,6 @@ def create_app():
 
     api.init_app(blueprint)
     app.register_blueprint(blueprint)
-    # Database.init_app(app)
+    Database.init_app(app)
 
     return app
