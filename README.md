@@ -11,14 +11,21 @@ like IIPImage.
 To use panoramix-server from sources:
 
 ```
-$ sudo apt-get install postgresql postgis
+$ sudo apt-get install postgresql postgis libgeos-dev python3-tk
 $ git clone https://github.com/pblottiere/panoramix-server
 $ cd panoramix-server
 $ virtualenv -p /usr/bin/python3 venv
 $ . venv/bin/activate
-(venv)$ pip install -e .
+(venv)$ pip install -r requirements.txt
 ```
 
+In case of the next error during the *pip install* step:
+
+```
+...
+/usr/bin/ld: cannot find -lgeos
+$ sudo ln -s /usr/lib/libgeos-3.4.2.so /usr/lib/libgeos.so
+```
 
 ## How to prepare images and database
 
@@ -80,10 +87,7 @@ If you want to draw a map of available images in database, you can use the
 **px2map** tool.
 
 ```
-$ sudo apt-get install libgeos-dev python3-tk
-$ sudo ln -s /usr/lib/libgeos-3.4.2.so /usr/lib/libgeos.so
 $ . venv/bin/activate
-(venv)$ pip install matplotlib https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz
 (venv)$ ./tools/px2map pxserver.yml map.png
 ```
 
