@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from mpl_toolkits.basemap import Basemap
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
 
 from pxserver.database import Database
 
@@ -28,9 +30,20 @@ def point_to_list(pnt_str):
     return [float(i) for i in l]
 
 
-def draw_map(output):
-    # get extent from database
-    ext = box_to_list(Database.extent())
+def draw_map(output, view=None, radius=None):
+    # get extent and positions from database
+    if not view or not radius:
+        ext = box_to_list(Database.extent())
+        pos = Database.positions()
+    else:
+        viewpos = point_to_list(Database.position(view)[0]['st_astext'])
+        viewsid = Database.views_in_frustum(viewpos[1], viewpos[0], radius)
+        ext = Database.radius_extent(viewpos[1], viewpos[0], radius)
+        ext = box_to_list(ext)
+
+        pos = []
+        for id in viewsid:
+            pos.append(Database.position(id)[0])
 
     # init map
     map = Basemap(projection='merc',
@@ -42,9 +55,6 @@ def draw_map(output):
     map.drawcountries()
     map.fillcontinents(color='white')
     map.drawmapboundary()
-
-    # get image positions in database
-    pos = Database.positions()
 
     # init plot
     fig = plt.figure()
@@ -65,8 +75,8 @@ def draw_map(output):
         x, y = map(lng, lat)
 
         if p['type'] == 'cube':
-            map.plot(x, y, 'bo', markersize=5)
-            plt.text(x, y, p['view'], fontsize=8, color='b')
+            map.plot(x, y, 'bo', markersize=1)
+            plt.text(x, y, p['view'], fontsize=6, color='b')
 
     # draw equirectangular
     ax3 = fig.add_subplot(133)
@@ -76,8 +86,8 @@ def draw_map(output):
         x, y = map(lng, lat)
 
         if p['type'] == 'equi':
-            map.plot(x, y, 'bo', markersize=5)
-            plt.text(x, y, p['view'], fontsize=8, color='b')
+            map.plot(x, y, 'bo', markersize=1)
+            plt.text(x, y, p['view'], fontsize=6, color='b')
 
     # show map
     plt.savefig(output)

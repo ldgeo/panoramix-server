@@ -58,7 +58,14 @@ class Database():
         return cls.query_aslist(query)[0]
 
     @classmethod
-    def views_in_frustum(cls, lat, lng, radius, type):
+    def radius_extent(cls, lat, lng, radius):
+        query = ('select st_extent(position) from {0} where '
+                 'st_distance(position, ST_SetSRID(ST_MakePoint({1}, {2}), 4326), '
+                 'true) <= {3}'.format(cls.table, lng, lat, radius))
+        return cls.query_aslist(query)[0]
+
+    @classmethod
+    def views_in_frustum(cls, lat, lng, radius, type=None):
         query = ('select distinct on (view) view from {0} '
                  'WHERE ST_Distance(position, ST_SetSRID(ST_MakePoint({1}, '
                  '{2}), 4326), true) '
@@ -75,9 +82,10 @@ class Database():
 
     @classmethod
     def position(cls, viewid):
-        query = ('select st_astext(position) from {0} where view = {1} limit 1'
+        query = ('select view, st_astext(position), type from {0} where '
+                 'view = {1} limit 1'
                  .format(cls.table, viewid))
-        return cls.query_aslist(query)
+        return cls.query_asdict(query)
 
     @classmethod
     def from_view(cls, uid):

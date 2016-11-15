@@ -28,8 +28,13 @@ class PXInfos(object):
 class PXFrustum(object):
 
     def run(self, args):
+        if args.type == 'all':
+            t = None
+        else:
+            t = args.type
+
         views = Database.views_in_frustum(args['latitude'], args['longitude'],
-                                          args['radius'], args['type'])
+                                          args['radius'], t)
         infos = {}
         infos['views'] = views
 
@@ -76,7 +81,18 @@ class PXMetadata(object):
 
 class PXMap(object):
 
-    def run(self):
+    def run(self, args):
+        # check if view exist
+        if args.view:
+            results = Database.from_view(args['view'])
+            if not results:
+                return None
+
+        # init tmp file
         filename = tempfile.NamedTemporaryFile(delete=False)
-        draw_map(filename)
+
+        # draw the map
+        draw_map(filename, args.view, args.radius)
+
+        # send the file
         return send_file(filename, mimetype='image/gif')

@@ -88,17 +88,26 @@ class PXServerMetadata(Resource):
     @api.expect(metadata_parser, validate=True)
     def get(self):
         args = metadata_parser.parse_args()
-
         res = px.PXMetadata().run(args)
         if not res:
             pxserver_ns.abort(404, 'View not found')
-
         return res
 
 
 # map
+map_parser = reqparse.RequestParser()
+map_parser.add_argument('view', type=int, required=False)
+map_parser.add_argument('radius', type=float, required=False)
+
+
 @pxserver_ns.route('/map')
 class PXServerMap(Resource):
 
+    @pxserver_ns.response(404, 'View not found')
+    @api.expect(map_parser, validate=True)
     def get(self):
-        return px.PXMap().run()
+        args = map_parser.parse_args()
+        res = px.PXMap().run(args)
+        if not res:
+            pxserver_ns.abort(404, 'View not found')
+        return res
