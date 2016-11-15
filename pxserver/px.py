@@ -69,7 +69,7 @@ class PXMetadata(object):
                 files.append(f)
             infos['files'] = files
 
-        pos = point_to_list(Database.position(args['view'])[0])
+        pos = point_to_list(Database.position(args['view'])[0]['st_astext'])
         infos['position'] = {'longitude': pos[0], 'latitude': pos[1]}
 
         resp = Response(json.dumps(infos))
