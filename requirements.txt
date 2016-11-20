@@ -4,5 +4,5 @@ psycopg2==2.6.1
 pyyaml
 pyexifinfo
 matplotlib
-https://github.com/matplotlib/basemap/archive/v1.0.7rel.tar.gz
+https://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz
 uwsgi
